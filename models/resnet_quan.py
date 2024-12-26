@@ -212,7 +212,7 @@ class PreActResNetBottleneck(nn.Module):
         return x
 
 # For CIFAR10
-def resnet20q(wbit_list, abit_list, num_classes, expand=1):
+def resnet20q(wbit_list, abit_list, num_classes, expand=5):
     return PreActResNet(PreActBasicBlockQ, [3, 3, 3], wbit_list, abit_list, num_classes=num_classes, expand=expand)
 
 # For ImageNet

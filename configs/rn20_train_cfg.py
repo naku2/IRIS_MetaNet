@@ -8,7 +8,7 @@ NN_cfg_dict = {
     "train_split": "train",
     "model": "resnet20q",
     "workers": 2,
-    "epochs": 150,
+    "epochs": 50,
     "start_epoch": 0,
     "batch_size": 128,
     "optimizer": "adam",
@@ -38,9 +38,9 @@ LR_cfg_dict = {
 
 wandb_cfg_dict = {
     "wandb_enabled": True,
-    "key": "028a6c9f793dd46f8ead875b50784dde31c413be",
-    "entity": "iris_metanet",
-    "project": "0512",
+    "key": "3914394dc58eb9d88ed682d03779576f35627195",
+    "entity": "tentacion990125-sungkyunkwan-university",
+    "project": "test",
     "resume": None,
     "pretrain": None,
     "sweep_enabled": False,
