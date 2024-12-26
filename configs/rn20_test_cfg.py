@@ -17,7 +17,7 @@ NN_cfg_dict = {
     "lr_decay": "100,140,180,220",
     "weight_decay": 0.0,
     "print_freq": 20,
-    "pretrain": None,
+    "pretrain": "/root/IRIS_MetaNet/RN18Q_1248_3567.pth.tar",
     "resume": None,
     "weight_bit_width": "1,2,3,4,5,6,7,8,32",
     "act_bit_width": "4,4,4,4,4,4,4,4,32",
@@ -38,10 +38,10 @@ LR_cfg_dict = {
 
 wandb_cfg_dict = {
     "wandb_enabled": True,
-    "key": "028a6c9f793dd46f8ead875b50784dde31c413be",
-    "entity": "iris_metanet",
-    "project": "test",
-    "pretrain": "iris_metanet/0512/djef88nv",
+    "key": "3914394dc58eb9d88ed682d03779576f35627195",
+    "entity": "tentacion990125-sungkyunkwan-university",
+    "project": "IRIS_MetaNet",
+    "pretrain": None,
     "sweep_enabled": False,
     "sweep_config": {
         "name": NN_cfg_dict["log_id"],
