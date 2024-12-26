@@ -17,7 +17,7 @@ NN_cfg_dict = {
     "lr_decay": "100,140,180,220",
     "weight_decay": 0.0,
     "print_freq": 20,
-    "pretrain": "/root/IRIS_MetaNet-1/RN20Q_124832_3567.pth.tar",
+    "pretrain": "/root/IRIS_MetaNet-1/results/RN20/train_20241226_095316/ckpt/model_best.pth.tar",
     "resume": None,
     "weight_bit_width": "1,2,3,4,5,6,7,8,32",
     "act_bit_width": "4,4,4,4,4,4,4,4,32",
@@ -28,6 +28,7 @@ NN_cfg_dict = {
     "CONV": "conv2dQ",
     "bn_type": "bn",
     "biascorr": 'T',
+    "inject_variation": True
 }
 
 LR_cfg_dict = {
@@ -40,7 +41,7 @@ wandb_cfg_dict = {
     "wandb_enabled": True,
     "key": "3914394dc58eb9d88ed682d03779576f35627195",
     "entity": "tentacion990125-sungkyunkwan-university",
-    "project": "IRIS_MetaNet",
+    "project": "test",
     "pretrain": None,
     "sweep_enabled": False,
     "sweep_config": {

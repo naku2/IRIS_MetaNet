@@ -19,6 +19,7 @@ from misc.utils import AverageMeter, accuracy
 from torchsummary import summary
 
 from configs.config import *
+from variation_injection import apply_variations  # Import the variation injection function
 
 # Put in the MIG UUID to use the MIG instance
 os.environ["CUDA_VISIBLE_DEVICES"] = "MIG-b978da18-95fe-5992-93bb-7abcb371f386"
@@ -71,9 +72,6 @@ def main():
                                         abit_list=act_bit_width,
                                         num_classes=train_data.num_classes).cuda()
 
-    # summary(model, (3, 32, 32))
-    # assert 1==2
-
     print(model)
     optimizer = get_optimizer_config(model, args.optimizer, args.lr, args.weight_decay)
     best_prec1, lr_scheduler, start_epoch = check_resume_pretrain(model, optimizer, best_gpu, results_dir)
@@ -94,6 +92,12 @@ def main():
             model.train()
             train_loss, train_prec1, train_prec5 = forward(train_loader, model, criterion, criterion_soft, epoch, True, optimizer)
             train_loss_dict, train_prec1_dict, train_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [train_loss, train_prec1, train_prec5]]
+        
+        # Inject variations if enabled
+        if hasattr(args, 'inject_variation') and args.inject_variation:
+            logging.info("Injecting variations into the model weights...")
+            apply_variations(model, sigma=0.25)
+        
         model.eval()
         val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
@@ -218,9 +222,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:
         from wandb_ez import wandb_ez
-        # from wandb_ez.wandb_cfg import *
         run = wandb_ez.init(args, main)
-        # if wandb_cfg['sweep'] is False:
-            # main()
     else:
         main()
