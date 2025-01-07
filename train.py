@@ -96,10 +96,19 @@ def main():
         # Inject variations if enabled
         if hasattr(args, 'inject_variation') and args.inject_variation:
             logging.info("Injecting variations into the model weights...")
-            apply_variations(model, sigma=0.25)
+            # Before and after variation injection
+            for name, layer in model.named_modules():
+                if isinstance(layer, (nn.Conv2d, nn.Linear)):
+                    print(f"Before variation injection, weights of {name}: {layer.weight.mean().item()} (mean)")
+            apply_variations(model, sigma=0.5)
+            for name, layer in model.named_modules():
+                if isinstance(layer, (nn.Conv2d, nn.Linear)):
+                    print(f"After variation injection, weights of {name}: {layer.weight.mean().item()} (mean)")
+
+
         
         model.eval()
-        val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
 
         if args.is_training == 'T':
@@ -134,7 +143,8 @@ def main():
                             "curr_lr": lr_scheduler.get_last_lr()[0],
                             "val_loss": val_loss_dict,
                             "val_prec1": val_prec1_dict,
-                            "val_prec5": val_prec5_dict})
+                            "val_prec5": val_prec5_dict
+                            }, model=model, weight_distributions=weight_distributions)
 
         for w_bw, a_bw, vl, vp1, vp5 in zip(weight_bit_width, act_bit_width, val_loss, val_prec1, val_prec5):
             tqdm.write('wbit {}, abit {}: val loss {:.2f},   val prec1 {:.2f},   val prec5 {:.2f}'.format(w_bw, a_bw, vl, vp1, vp5))
@@ -148,6 +158,9 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
+    # Initialize a dictionary to store weight distributions
+    weight_distributions = {wbit: {"raw_weights": {}, "quantized_weights": {}} for wbit in weight_bit_width}
+
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():
@@ -157,6 +170,21 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width, act_bit_width, losses, top1, top5):
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
+
+                    if epoch == 0 and i == 0:  # Only log at step 0
+                        for name, param in model.named_parameters():
+                            if "weight" in name:
+                                if name not in weight_distributions[w_bw]["raw_weights"]:
+                                    weight_distributions[w_bw]["raw_weights"][name] = []
+                                    weight_distributions[w_bw]["quantized_weights"][name] = []
+
+                                # Store raw weights
+                                weight_distributions[w_bw]["raw_weights"][name].append(param.cpu().detach().numpy())
+
+                                # Store quantized weights if quantize_fn exists
+                                if hasattr(param, "quantize_fn"):
+                                    quantized_weight = param.quantize_fn(param).cpu().detach().numpy()
+                                    weight_distributions[w_bw]["quantized_weights"][name].append(quantized_weight)
                     output = model(input)
                     loss = criterion(output, target)
 
@@ -217,7 +245,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 tqdm.write('epoch {0}, iter {1}/{2}, bit_width_max loss {3:.2f}, prec1 {4:.2f}, prec5 {5:.2f}'.format(
                     epoch, i, len(data_loader), losses[max_bw].val, top1[max_bw].val, top5[max_bw].val))
 
-    return [_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5]
+    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
 
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:

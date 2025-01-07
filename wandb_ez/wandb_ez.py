@@ -100,7 +100,33 @@ def args2config_sweep(args):
     return config
 
 
-def log(report_dict):
+def log(report_dict, model=None, weight_distributions=None):
+    """
+    Logs weight distributions to WandB.
+    Parameters:
+        report_dict: General metrics to log
+        model: The PyTorch model (required if logging weights)
+        weight_distributions: Precomputed weight distributions
+        step: The step to log (default: 0 for limiting to the first step)
+    """
+    if model is not None:
+        print("Logging weight distributions...")
+        weight_distributions = {"quantized_weights": {}, "raw_weights": {}}
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                # Log raw weights
+                weight_distributions["raw_weights"][f"weights/{name}"] = wandb.Histogram(param.cpu().detach().numpy())
+                # Check if quantization is applied
+                if hasattr(param, "quantize_fn"):
+                    quantized_weight = param.quantize_fn(param).cpu().detach().numpy()
+                    weight_distributions["quantized_weights"][f"quantized_weights/{name}"] = wandb.Histogram(quantized_weight)
+
+        # Update the report_dict
+        report_dict.update(weight_distributions["raw_weights"])
+        report_dict.update(weight_distributions["quantized_weights"])
+        print(f"Weight distributions added: {list(weight_distributions['raw_weights'].keys()) + list(weight_distributions['quantized_weights'].keys())}")
+
+    # Log to WandB with step
     wandb.log(report_dict)
     return
 
