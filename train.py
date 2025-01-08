@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.optim
 import torch.utils.data
+import wandb
+import numpy as np
 
 import models
 import quan_ops
@@ -144,7 +146,7 @@ def main():
                             "val_loss": val_loss_dict,
                             "val_prec1": val_prec1_dict,
                             "val_prec5": val_prec5_dict
-                            }, model=model, weight_distributions=weight_distributions)
+                            }, model=model)
 
         for w_bw, a_bw, vl, vp1, vp5 in zip(weight_bit_width, act_bit_width, val_loss, val_prec1, val_prec5):
             tqdm.write('wbit {}, abit {}: val loss {:.2f},   val prec1 {:.2f},   val prec5 {:.2f}'.format(w_bw, a_bw, vl, vp1, vp5))
@@ -158,9 +160,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
-    # Initialize a dictionary to store weight distributions
-    weight_distributions = {wbit: {"raw_weights": {}, "quantized_weights": {}} for wbit in weight_bit_width}
-
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():
@@ -171,20 +170,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
-                    if epoch == 0 and i == 0:  # Only log at step 0
-                        for name, param in model.named_parameters():
-                            if "weight" in name:
-                                if name not in weight_distributions[w_bw]["raw_weights"]:
-                                    weight_distributions[w_bw]["raw_weights"][name] = []
-                                    weight_distributions[w_bw]["quantized_weights"][name] = []
-
-                                # Store raw weights
-                                weight_distributions[w_bw]["raw_weights"][name].append(param.cpu().detach().numpy())
-
-                                # Store quantized weights if quantize_fn exists
-                                if hasattr(param, "quantize_fn"):
-                                    quantized_weight = param.quantize_fn(param).cpu().detach().numpy()
-                                    weight_distributions[w_bw]["quantized_weights"][name].append(quantized_weight)
+                    
                     output = model(input)
                     loss = criterion(output, target)
 
@@ -192,6 +178,36 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     am_l.update(loss.item(), input.size(0))
                     am_t1.update(prec1.item(), input.size(0))
                     am_t5.update(prec5.item(), input.size(0))
+
+
+                    # 가중치 추출 및 wandb 기록
+                    weight_distributions = {}
+                    for name, param in model.named_parameters():
+                        if "weight" in name and "bn" not in name:
+                            weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
+
+                    # wandb에 기록
+                    wandb.log(weight_distributions, step=0)
+                    # # 가중치 추출 및 wandb 기록
+                    # weight_distributions = {}
+                    # for name, param in model.named_parameters():
+                    #     if "weight" in name and "bn" not in name:
+                    #         # 가중치를 numpy 배열로 변환
+                    #         weights = param.cpu().detach().numpy()
+
+                    #         # 히스토그램 데이터 생성 (x축: bins, y축: counts)
+                    #         counts, bins = np.histogram(weights, bins=50)  # bins 개수는 조절 가능
+
+                    #         # wandb에 기록 (custom chart 형태로 기록)
+                    #         weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = {
+                    #             "bins": bins[:-1].tolist(),  # 마지막 bin 제외
+                    #             "counts": counts.tolist()
+                    #         }
+
+                    # # wandb log 호출
+                    # for key, value in weight_distributions.items():
+                    #     wandb.log({key: wandb.Table(data=list(zip(value["bins"], value["counts"])), columns=["Weight Value", "Count"])})
+                                        
         else:
             input = input.cuda()
             target = target.cuda(non_blocking=True)
