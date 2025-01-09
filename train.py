@@ -95,20 +95,6 @@ def main():
             train_loss, train_prec1, train_prec5 = forward(train_loader, model, criterion, criterion_soft, epoch, True, optimizer)
             train_loss_dict, train_prec1_dict, train_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [train_loss, train_prec1, train_prec5]]
         
-        # Inject variations if enabled
-        if hasattr(args, 'inject_variation') and args.inject_variation:
-            logging.info("Injecting variations into the model weights...")
-            # Before and after variation injection
-            for name, layer in model.named_modules():
-                if isinstance(layer, (nn.Conv2d, nn.Linear)):
-                    print(f"Before variation injection, weights of {name}: {layer.weight.mean().item()} (mean)")
-            apply_variations(model, sigma=0.5)
-            for name, layer in model.named_modules():
-                if isinstance(layer, (nn.Conv2d, nn.Linear)):
-                    print(f"After variation injection, weights of {name}: {layer.weight.mean().item()} (mean)")
-
-
-        
         model.eval()
         val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
@@ -160,6 +146,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
+    # 원래 weight 저장
+    original_weights = {
+        name: layer.weight.clone() 
+        for name, layer in model.named_modules() 
+        if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d, nn.Linear))
+    }
+
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():
@@ -170,7 +163,11 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
-                    
+                    # Inject variations if enabled
+                    if hasattr(args, 'inject_variation') and args.inject_variation:
+                        logging.info("Injecting variations into the model weights...")
+                        apply_variations(model, sigma=1.0)                    
+
                     output = model(input)
                     loss = criterion(output, target)
 
@@ -207,6 +204,11 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     # # wandb log 호출
                     # for key, value in weight_distributions.items():
                     #     wandb.log({key: wandb.Table(data=list(zip(value["bins"], value["counts"])), columns=["Weight Value", "Count"])})
+
+                    # **가중치 원상복구**
+                    for name, layer in model.named_modules():
+                        if name in original_weights:
+                            layer.weight.data.copy_(original_weights[name])
                                         
         else:
             input = input.cuda()

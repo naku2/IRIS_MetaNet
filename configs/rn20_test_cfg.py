@@ -28,7 +28,7 @@ NN_cfg_dict = {
     "CONV": "conv2dQ",
     "bn_type": "bn",
     "biascorr": 'T',
-    "inject_variation": False
+    "inject_variation": True
 }
 
 LR_cfg_dict = {
