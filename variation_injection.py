@@ -29,12 +29,10 @@ def apply_variations(model, sigma):
     with torch.no_grad():
         for name, layer in model.named_modules():
             if isinstance(layer, (nn.Conv2d, nn.Linear)):
-                # Exclude specific layers like the first Conv2D and last FC layer
-                if "conv0" in name or "fc" in name:
-                    continue
+                # Check if the layer is quantized
+                is_quantized = hasattr(layer, "quantize_fn") or (hasattr(layer, "wbit") and layer.wbit != 32)
 
-                # Only apply variations to quantized weights (layers with quantize_fn and wbit != 32)
-                if hasattr(layer, "wbit") and layer.wbit != 32:
+                if is_quantized:
                     # Calculate scale factor for INT scale variations
                     if layer.wbit == 1:
                         scale_factor = layer.weight.abs().max()

@@ -41,7 +41,7 @@ wandb_cfg_dict = {
     "wandb_enabled": True,
     "key": "3914394dc58eb9d88ed682d03779576f35627195",
     "entity": "tentacion990125-sungkyunkwan-university",
-    "project": "test",
+    "project": "variation(without wbit=32)",
     "pretrain": None,
     "sweep_enabled": False,
     "sweep_config": {

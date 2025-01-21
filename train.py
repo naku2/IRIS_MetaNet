@@ -166,7 +166,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     # Inject variations if enabled
                     if hasattr(args, 'inject_variation') and args.inject_variation:
                         logging.info("Injecting variations into the model weights...")
-                        apply_variations(model, sigma=1.0)                    
+                        apply_variations(model, sigma=5.0)                    
 
                     output = model(input)
                     loss = criterion(output, target)
@@ -185,26 +185,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # wandb에 기록
                     wandb.log(weight_distributions, step=0)
-                    # # 가중치 추출 및 wandb 기록
-                    # weight_distributions = {}
-                    # for name, param in model.named_parameters():
-                    #     if "weight" in name and "bn" not in name:
-                    #         # 가중치를 numpy 배열로 변환
-                    #         weights = param.cpu().detach().numpy()
-
-                    #         # 히스토그램 데이터 생성 (x축: bins, y축: counts)
-                    #         counts, bins = np.histogram(weights, bins=50)  # bins 개수는 조절 가능
-
-                    #         # wandb에 기록 (custom chart 형태로 기록)
-                    #         weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = {
-                    #             "bins": bins[:-1].tolist(),  # 마지막 bin 제외
-                    #             "counts": counts.tolist()
-                    #         }
-
-                    # # wandb log 호출
-                    # for key, value in weight_distributions.items():
-                    #     wandb.log({key: wandb.Table(data=list(zip(value["bins"], value["counts"])), columns=["Weight Value", "Count"])})
-
                     # **가중치 원상복구**
                     for name, layer in model.named_modules():
                         if name in original_weights:
