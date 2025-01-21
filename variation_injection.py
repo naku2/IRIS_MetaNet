@@ -30,7 +30,7 @@ def apply_variations(model, sigma):
         for name, layer in model.named_modules():
             if isinstance(layer, (nn.Conv2d, nn.Linear)):
                 # Check if the layer is quantized
-                is_quantized = hasattr(layer, "quantize_fn") or (hasattr(layer, "wbit") and layer.wbit != 32)
+                is_quantized = hasattr(layer, "quantize_fn") and (hasattr(layer, "wbit") and layer.wbit != 32)
 
                 if is_quantized:
                     # Calculate scale factor for INT scale variations
