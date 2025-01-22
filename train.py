@@ -37,7 +37,8 @@ def main():
         args = all_cfg
 
     quan_ops.conv2d_quan_ops.args = args
-    models.resnet_quan.args = args
+    #models.resnet_quan.args = args
+    models.vgg.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
     act_bit_width = list(map(int, args.act_bit_width.split(',')))
@@ -97,7 +98,8 @@ def main():
             train_loss_dict, train_prec1_dict, train_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [train_loss, train_prec1, train_prec5]]
         
         model.eval()
-        val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        #val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
 
         if args.is_training == 'T':
@@ -244,7 +246,8 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 tqdm.write('epoch {0}, iter {1}/{2}, bit_width_max loss {3:.2f}, prec1 {4:.2f}, prec5 {5:.2f}'.format(
                     epoch, i, len(data_loader), losses[max_bw].val, top1[max_bw].val, top5[max_bw].val))
 
-    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
+    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
+    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
 
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:
