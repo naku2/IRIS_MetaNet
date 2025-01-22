@@ -202,8 +202,10 @@ def _vgg(arch, cfg, batch_norm, pretrained, progress, **kwargs):
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
 
-        # `classifier.6`의 가중치를 제외하고 로드
-        state_dict.pop("classifier.6.weight", None)
+        # `classifier`의 가중치 불일치를 처리
+        state_dict.pop("classifier.0.weight", None)  # 첫 번째 Linear 레이어
+        state_dict.pop("classifier.0.bias", None)
+        state_dict.pop("classifier.6.weight", None)  # 마지막 Linear 레이어
         state_dict.pop("classifier.6.bias", None)
 
         model.load_state_dict(state_dict, strict=False)
