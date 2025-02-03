@@ -8,7 +8,7 @@ NN_cfg_dict = {
     "train_split": "train",
     "model": "resnet20q",
     "workers": 2,
-    "epochs": 50,
+    "epochs": 200,
     "start_epoch": 0,
     "batch_size": 128,
     "optimizer": "adam",

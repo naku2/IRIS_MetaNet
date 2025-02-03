@@ -166,10 +166,10 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
-                    # Inject variations if enabled
-                    if hasattr(args, 'inject_variation') and args.inject_variation:
-                        logging.info("Injecting variations into the model weights...")
-                        apply_variations(model, sigma=1.0)                    
+                    # # Inject variations if enabled
+                    # if hasattr(args, 'inject_variation') and args.inject_variation:
+                    #     logging.info("Injecting variations into the model weights...")
+                    #     apply_variations(model, sigma=1.0)                    
 
                     output = model(input)
                     loss = criterion(output, target)
