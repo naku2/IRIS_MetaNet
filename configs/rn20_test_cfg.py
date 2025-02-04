@@ -17,7 +17,7 @@ NN_cfg_dict = {
     "lr_decay": "100,140,180,220",
     "weight_decay": 0.0,
     "print_freq": 20,
-    "pretrain": "/root/IRIS_MetaNet-1/RN20Q_124832.pth.tar",
+    "pretrain": "/root/IRIS_MetaNet-1/model_latest.pth.tar",
     "resume": None,
     "weight_bit_width": "1,2,4,8,32",
     "act_bit_width": "4,4,4,4,32",
