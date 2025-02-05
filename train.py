@@ -37,8 +37,8 @@ def main():
         args = all_cfg
 
     quan_ops.conv2d_quan_ops.args = args
-    #models.resnet_quan.args = args
-    models.vgg.args = args
+    models.resnet_quan.args = args
+    #models.vgg.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
     act_bit_width = list(map(int, args.act_bit_width.split(',')))
